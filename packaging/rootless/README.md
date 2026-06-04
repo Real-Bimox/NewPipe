@@ -1,6 +1,6 @@
 # NewPipe Rootless Packaging
 
-Rootless tooling version: 0.1.1
+Rootless tooling version: 0.1.2
 
 This directory keeps local rootless build tooling for this NewPipe checkout.
 It deliberately does not provide a Waydroid launcher or any other root-managed
@@ -55,6 +55,30 @@ Pass Gradle tasks after the script name:
 packaging/rootless/build-debug-apk-in-podman.sh testDebugUnitTest --stacktrace
 ```
 
+## Test
+
+Run the rootless build:
+
+```bash
+packaging/rootless/build-debug-apk-in-podman.sh
+```
+
+A successful run ends with:
+
+```text
+BUILD SUCCESSFUL
+Built APK: /var/home/bahram/local-repos/NewPipe/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Confirm the APK:
+
+```bash
+ls -lh app/build/outputs/apk/debug/app-debug.apk
+```
+
+This verifies rootless APK build/update only. It does not verify desktop
+playback.
+
 ## Runtime Status
 
 There is currently no verified rootless playback runtime for this checkout on
@@ -73,6 +97,11 @@ Tested rootless options:
 Waydroid was removed from this local packaging path because it uses a
 root-managed Android LXC container. That does not satisfy an absolute-rootless
 runtime requirement.
+
+The practical result is that this checkout can produce a rootless-built Android
+APK, but it cannot currently run that APK on this Linux desktop without a
+non-rootless Android runtime. Use a real Android device, or wait for the
+`desktopApp` module to become a functional player.
 
 ## Future NewPipe Updates
 

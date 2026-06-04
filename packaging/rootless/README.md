@@ -1,6 +1,6 @@
 # NewPipe Rootless Packaging
 
-Rootless tooling version: 0.1.0
+Rootless tooling version: 0.1.1
 
 This directory keeps local rootless build tooling for this NewPipe checkout.
 It deliberately does not provide a Waydroid launcher or any other root-managed
@@ -17,6 +17,10 @@ runtime integration.
 ~/.cache/newpipe-rootless/android-sdk
 ~/.cache/newpipe-rootless/gradle
 ```
+
+The script may stage SDK files in `/tmp/newpipe-sdk-stage.*` while copying from
+the builder image. Those staged files are cleaned with `podman unshare` because
+the temporary copy can be owned by Podman's user namespace.
 
 The expected APK path is:
 
@@ -75,4 +79,3 @@ runtime requirement.
 1. Pull or merge the newer NewPipe code.
 2. Re-run `packaging/rootless/build-debug-apk-in-podman.sh`.
 3. Use the APK on a real Android device or another verified rootless runtime.
-

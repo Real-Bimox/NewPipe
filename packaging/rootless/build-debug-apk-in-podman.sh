@@ -23,7 +23,7 @@ mkdir -p "$GRADLE_CACHE" "$ANDROID_SDK_CACHE"
 
 cleanup_stage() {
     if [ -n "${SDK_STAGE:-}" ]; then
-        rm -rf "$SDK_STAGE"
+        podman unshare rm -rf "$SDK_STAGE"
     fi
 }
 

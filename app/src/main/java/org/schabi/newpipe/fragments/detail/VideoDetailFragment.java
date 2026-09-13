@@ -621,6 +621,17 @@ public final class VideoDetailFragment
     protected void initViews(final View rootView, final Bundle savedInstanceState) {
         super.initViews(rootView, savedInstanceState);
 
+        // Windowed desktop environments resize the window at runtime without
+        // any Android configuration change; recompute the player and thumbnail
+        // heights whenever the root view width changes (on phones and tablets
+        // this is already covered by orientation changes recreating the view).
+        rootView.addOnLayoutChangeListener((v, left, top, right, bottom,
+                                            oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (right - left != oldRight - oldLeft) {
+                setHeightThumbnail();
+            }
+        });
+
         pageAdapter = new TabAdapter(getChildFragmentManager());
         binding.viewPager.setAdapter(pageAdapter);
         binding.tabLayout.setupWithViewPager(binding.viewPager);

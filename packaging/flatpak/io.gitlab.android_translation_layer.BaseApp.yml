@@ -160,6 +160,8 @@ modules:
         path: patches/android_translation_layer_appid.patch
       - type: patch
         path: patches/0002-atl-env-gated-hw-decode.patch
+      - type: patch
+        path: patches/0003-atl-live-displaymetrics-and-layout-listeners.patch
 
   - name: cacerts
     buildsystem: simple

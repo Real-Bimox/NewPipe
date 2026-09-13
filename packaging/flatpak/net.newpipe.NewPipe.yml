@@ -17,15 +17,17 @@ modules:
   - name: newpipe
     buildsystem: simple
     build-commands:
-      - install -D NewPipe_v0.28.8.apk /app/share/NewPipe.apk
+      - install -D app-debug.apk /app/share/NewPipe.apk
       - install -D newpipe.sh /app/bin/newpipe.sh
       - install -D net.newpipe.NewPipe.desktop /app/share/applications/net.newpipe.NewPipe.desktop
       - install -D logo.svg /app/share/icons/hicolor/scalable/apps/net.newpipe.NewPipe.svg
       - install -D net.newpipe.NewPipe.metainfo.xml /app/share/metainfo/net.newpipe.NewPipe.metainfo.xml
     sources:
+      # locally built APK from the Real-Bimox/NewPipe fork (branch flatpak-fixed),
+      # built with packaging/rootless/build-debug-apk-in-podman.sh and copied here
+      # as app-debug.apk (see README.md)
       - type: file
-        url: https://archive.newpipe.net/fdroid/repo/NewPipe_v0.28.8.apk
-        sha256: d9fb2540b3a2a0b059c73a296f0cda1c06738426d013c626dbf088aea66629b3
+        path: app-debug.apk
       - type: file
         url: https://newpipe.net/img/logo.svg
         sha256: dcbdc537ef9937225df96f97a571a5deb2e5dde021c687530b7ee165c5c67cb7

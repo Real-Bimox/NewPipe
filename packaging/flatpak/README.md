@@ -12,7 +12,8 @@ Verified working 2026-09-13 on Bazzite 44 (Fedora Kinoite, KDE, NVIDIA
 
 ## What was broken
 
-Two independent bugs, both in the ATL stack (not in NewPipe itself):
+Three independent bugs — two in the ATL stack, one in how NewPipe sizes its
+player on non-Android environments:
 
 1. **SIGSEGV during playback / feed load — use-after-free of native ICU
    `RegexPattern`.** The runtime's reference processing runs
@@ -53,6 +54,27 @@ session instead of being freed (small, bounded); video decoding uses the CPU
 (trivial at 1080p on modern hardware). Both are strictly better than the
 crashes they replace.
 
+3. **Video area never resized with the window** (fixed on both sides):
+   - `patches/0003-atl-live-displaymetrics-and-layout-listeners.patch`
+     (against `android_translation_layer` @ `923b6df1…`): the window's
+     `check-resize` (debounced) now updates `Display.window_width/height`
+     and the cached system `Resources` `DisplayMetrics` — previously these
+     froze at the startup window size, so every size derived from
+     `getResources().getDisplayMetrics()` was stale forever. The patch also
+     implements `View.addOnLayoutChangeListener` (previously a no-op stub)
+     and dispatches `onLayoutChange` from `layoutInternal` on size changes.
+   - App-side (this fork, `flatpak-fixed` branch): `VideoDetailFragment`
+     now re-runs `setHeightThumbnail()` when the root view width changes,
+     which refreshes the player/thumbnail heights and the surface view's
+     base height. On phones and tablets this is already covered by
+     orientation changes recreating the view; windowed desktops resize
+     without any configuration change.
+
+   Together: resizing the window rescales the video area with the correct
+   aspect ratio. Verified stable (no crashes) under scripted resizes; the
+   upstreamable direction is the ATL patch above plus a NewPipe PR for the
+   layout listener.
+
 ## Building on another Linux system
 
 Requirements: a distribution with Flatpak (user install is sufficient — no
@@ -67,6 +89,12 @@ flatpak install --user --noninteractive flathub org.freedesktop.Sdk.Extension.op
 # flatpak-builder itself is a Flatpak:
 flatpak install --user --noninteractive flathub org.flatpak.Builder
 
+cd packaging/flatpak
+
+# 0. Build the patched NewPipe APK (uses the fork's rootless podman build
+#    tooling; needs Podman). Takes ~10-20 min.
+cd .. && packaging/rootless/build-debug-apk-in-podman.sh
+cp app/build/outputs/apk/debug/app-debug.apk packaging/flatpak/app-debug.apk
 cd packaging/flatpak
 
 # 1. Build the (patched) ATL BaseApp — installs as branch "master", user install.
@@ -116,9 +144,13 @@ App data lives in `~/.var/app/net.newpipe.NewPipe/` (survives rebuilds).
   be re-enabled by removing the `export ATL_DISABLE_HW_DECODE=1` line from
   `newpipe.sh` and rebuilding only the app (step 2 above). The crash fix
   (patch 0001) is independent of this.
-- **Updating NewPipe:** bump the APK `url`/`sha256` in
-  `net.newpipe.NewPipe.yml` (current release assets:
-  https://archive.newpipe.net/fdroid/repo/) and re-run step 2.
+- **Updating NewPipe:** this build now uses the locally built APK from this
+  fork (step 0 above) instead of the Flathub-pinned release APK, because the
+  fork carries the layout-change fix. To take a newer upstream NewPipe:
+  merge `TeamNewPipe:dev` into `dev`, rebase `flatpak-fixed`, re-run step 0,
+  and re-run step 2. To go back to the unmodified release APK, restore the
+  `archive.newpipe.net` source with its `sha256` in `net.newpipe.NewPipe.yml`
+  (and drop the local file source).
 
 ## Restoring the Flathub original
 

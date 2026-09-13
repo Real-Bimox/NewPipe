@@ -1,0 +1,56 @@
+From 5bd0c5dba9b245e597a4e6e993a1f257090fa665 Mon Sep 17 00:00:00 2001
+From: Bimox <Real-Bimox@users.noreply.github.com>
+Date: Sun, 13 Sep 2026 22:55:35 +1000
+Subject: [PATCH] Add stub AlignmentSpan.Standard
+
+NewPipe dev uses AlignmentSpan.Standard to center the styled text in
+the search fragment; the missing class aborted the process with a
+NoClassDefFoundError the moment the search view was opened. Follows
+the existing stub-span pattern (e.g. LeadingMarginSpan).
+---
+ .../android/text/style/AlignmentSpan.java     | 20 +++++++++++++++++++
+ src/api-impl/meson.build                      |  1 +
+ 2 files changed, 21 insertions(+)
+ create mode 100644 src/api-impl/android/text/style/AlignmentSpan.java
+
+diff --git a/src/api-impl/android/text/style/AlignmentSpan.java b/src/api-impl/android/text/style/AlignmentSpan.java
+new file mode 100644
+index 00000000..3e1c24c5
+--- /dev/null
++++ b/src/api-impl/android/text/style/AlignmentSpan.java
+@@ -0,0 +1,20 @@
++package android.text.style;
++
++import android.text.Layout;
++import android.text.ParcelableSpan;
++
++public interface AlignmentSpan {
++
++	public static class Standard implements AlignmentSpan, ParcelableSpan {
++
++		private Layout.Alignment alignment;
++
++		public Standard(Layout.Alignment alignment) {
++			this.alignment = alignment;
++		}
++
++		public Layout.Alignment getAlignment() {
++			return alignment;
++		}
++	}
++}
+diff --git a/src/api-impl/meson.build b/src/api-impl/meson.build
+index 30c4bca9..e03fb0c7 100644
+--- a/src/api-impl/meson.build
++++ b/src/api-impl/meson.build
+@@ -509,6 +509,7 @@ srcs = [
+ 	'android/text/method/TextKeyListener.java',
+ 	'android/text/method/TransformationMethod.java',
+ 	'android/text/style/AbsoluteSizeSpan.java',
++	'android/text/style/AlignmentSpan.java',
+ 	'android/text/style/BackgroundColorSpan.java',
+ 	'android/text/style/BulletSpan.java',
+ 	'android/text/style/CharacterStyle.java',
+-- 
+2.55.0
+

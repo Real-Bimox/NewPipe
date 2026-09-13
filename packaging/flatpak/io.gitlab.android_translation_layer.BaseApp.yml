@@ -162,6 +162,8 @@ modules:
         path: patches/0002-atl-env-gated-hw-decode.patch
       - type: patch
         path: patches/0003-atl-live-displaymetrics-and-layout-listeners.patch
+      - type: patch
+        path: patches/0004-atl-add-alignment-span.patch
 
   - name: cacerts
     buildsystem: simple

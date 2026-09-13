@@ -75,6 +75,17 @@ crashes they replace.
    upstreamable direction is the ATL patch above plus a NewPipe PR for the
    layout listener.
 
+4. **Search view crashed the app** (`NoClassDefFoundError:
+   android.text.style.AlignmentSpan$Standard`): NewPipe's `dev` code styles
+   the search fragment's status text with `AlignmentSpan.Standard`, a class
+   ATL's api-impl did not ship (all other span stubs exist, this one was
+   missing), and ART aborts when native code proceeds with the pending
+   exception. `patches/0004-atl-add-alignment-span.patch` adds the stub
+   class following the existing pattern (e.g. `LeadingMarginSpan`). Expect
+   further gaps of this kind from time to time, since this build uses the
+   fork's `dev` APK rather than the release Flathub pins; each is a small
+   api-impl stub away from working.
+
 ## Building on another Linux system
 
 Requirements: a distribution with Flatpak (user install is sufficient — no

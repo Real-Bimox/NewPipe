@@ -1,0 +1,59 @@
+From 405230c71b40f8b4b36c1b6d965aa40eb378b428 Mon Sep 17 00:00:00 2001
+From: Bimox <Real-Bimox@users.noreply.github.com>
+Date: Sun, 13 Sep 2026 21:26:43 +1000
+Subject: [PATCH] libcore: do not free native allocations via sun.misc.Cleaner
+
+Reference processing can trigger cleaners while the referent is still
+strongly reachable, deleting native objects that remain in use. Keep
+cleaner-managed native allocations alive for the process lifetime and
+only free them through the explicitly returned Runnable, which now
+guards against double frees.
+---
+ .../util/NativeAllocationRegistry.java        | 31 +++++++++++++++++--
+ 1 file changed, 29 insertions(+), 2 deletions(-)
+
+diff --git a/libcore/luni/src/main/java/libcore/util/NativeAllocationRegistry.java b/libcore/luni/src/main/java/libcore/util/NativeAllocationRegistry.java
+index ce11a960..893ac8e3 100644
+--- a/libcore/luni/src/main/java/libcore/util/NativeAllocationRegistry.java
++++ b/libcore/luni/src/main/java/libcore/util/NativeAllocationRegistry.java
+@@ -125,8 +125,35 @@ public class NativeAllocationRegistry {
+             throw oome;
+         }
+ 
+-        Cleaner cleaner = Cleaner.create(referent, new CleanerThunk(nativePtr));
+-        return new CleanerRunner(cleaner);
++        // The runtime's reference processing has been observed to run
++        // sun.misc.Cleaner instances while their referents are still strongly
++        // reachable (java.util.regex.Pattern during NewPipe playback), which
++        // deletes native objects that are still in use and crashes the
++        // process with a use-after-free in ICU. Until that is fixed in the
++        // runtime, deliberately keep cleaner-managed native allocations
++        // alive for the lifetime of the process. The returned Runnable
++        // still frees the allocation exactly once when invoked explicitly.
++        return new ExplicitFreeRunner(freeFunction, nativePtr);
++    }
++
++    private static class ExplicitFreeRunner implements Runnable {
++        private final long freeFunction;
++        private long nativePtr;
++        private boolean freed;
++
++        ExplicitFreeRunner(long freeFunction, long nativePtr) {
++            this.freeFunction = freeFunction;
++            this.nativePtr = nativePtr;
++        }
++
++        @Override
++        public synchronized void run() {
++            if (!freed) {
++                freed = true;
++                applyFreeFunction(freeFunction, nativePtr);
++                nativePtr = 0;
++            }
++        }
+     }
+ 
+     /**
+-- 
+2.55.0
+

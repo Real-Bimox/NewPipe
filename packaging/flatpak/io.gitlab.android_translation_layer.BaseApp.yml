@@ -1,0 +1,220 @@
+id: io.gitlab.android_translation_layer.BaseApp
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.openjdk17
+# default command and finish-args only for using as commandline application. They are ignored when used as base app
+command: android-translation-layer
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=pulseaudio
+  - --filesystem=home
+cleanup:
+  - /include
+  - /bin/dx
+  - '*.a'
+  - '*.la'
+  - /lib/libopenxr_loader.so*
+  - /lib/libportal-*
+  - /lib/cmake
+  - /lib/girepository-1.0
+  - /lib/java/core-all_classes.jar
+  - /lib/java/core-junit_classes.jar
+  - /lib/java/junit-runner_classes.jar
+  - /lib/java/dx.jar
+  - /lib/pkgconfig
+  - /share/doc
+  - /share/gir-1.0
+  - /share/man
+  - /share/vala
+  - /etc/ssl/certs/java/cacerts.bks
+modules:
+  - name: libmd
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: https://libbsd.freedesktop.org/releases/libmd-1.2.0.tar.xz
+        sha256: ac15ffb8430502fbaccdec66c5a82ee0eab0b0f36220df56710feadfeb13d0a0
+        x-checker-data:
+          type: anitya
+          project-id: 15525
+          stable-only: true
+          url-template: https://libbsd.freedesktop.org/releases/libmd-$version.tar.xz
+
+  - name: libbsd
+    sources:
+      - type: archive
+        url: https://libbsd.freedesktop.org/releases/libbsd-0.12.2.tar.xz
+        sha256: b88cc9163d0c652aaf39a99991d974ddba1c3a9711db8f1b5838af2a14731014
+        x-checker-data:
+          type: anitya
+          project-id: 1567
+          stable-only: true
+          url-template: https://libbsd.freedesktop.org/releases/libbsd-$version.tar.xz
+
+  - name: libportal
+    buildsystem: meson
+    sources:
+      - type: archive
+        url: https://github.com/flatpak/libportal/archive/0.11.0.tar.gz
+        sha256: 71482afa68b3373268e7df7feaf96ce99eb1a6701f60ff43a0d1b2594605eae8
+        x-checker-data:
+          type: anitya
+          project-id: 230124
+          stable-only: true
+          url-template: https://github.com/flatpak/libportal/archive/$version.tar.gz
+
+  - name: openxr
+    buildsystem: cmake-ninja
+    sources:
+      - type: git
+        url: https://github.com/KhronosGroup/OpenXR-SDK.git
+        tag: release-1.1.62
+        commit: 57af7fc61f9f2d492580cb28aab6d0ea59d8d417
+    config-opts:
+      - -DCMAKE_INSTALL_LIBDIR=lib
+
+  - name: wolfssl
+    buildsystem: autotools
+    config-opts:
+      - --enable-shared
+      - --disable-opensslall
+      - --disable-opensslextra
+      - --enable-aescbc-length-checks
+      - --enable-curve25519
+      - --enable-ed25519
+      - --enable-ed25519-stream
+      - --enable-oldtls
+      - --enable-base64encode
+      - --enable-tlsx
+      - --enable-scrypt
+      - --disable-examples
+      - --enable-crl
+      - --enable-jni
+      - --enable-sessioncerts
+    sources:
+      - type: git
+        url: https://github.com/wolfSSL/wolfssl.git
+        tag: v5.9.2-stable
+        commit: ac01707f552c611fbd135cc723b2682b3e7f80f2
+
+  - name: vixl
+    buildsystem: meson
+    build-options:
+      config-opts:
+        - -Dsimulator=none
+    only-arches:
+      - aarch64
+    sources:
+      - type: archive
+        url: https://github.com/Linaro/vixl/archive/refs/tags/8.0.0.tar.gz
+        sha256: 6aebbebcd9b66686ea246b450af529e1fc50fe25209522cc9ab42beae2377d38
+      - type: patch
+        path: patches/vixl_meson_support.patch
+
+  - name: bionic_translation
+    buildsystem: meson
+    sources:
+      - type: git
+        url: https://gitlab.com/android_translation_layer/bionic_translation.git
+        commit: 4bf89cc9cca15adfd0b684fc6eec712311515f6d
+        disable-submodules: true
+
+  - name: art_standalone
+    no-autogen: true
+    build-options:
+      make-args:
+        - ____PREFIX=/app
+        - ____LIBDIR=lib
+      make-install-args:
+        - ____PREFIX=/app
+        - ____LIBDIR=lib
+        - ____INSTALL_ETC=/app/etc
+      append-path: /usr/lib/sdk/openjdk17/bin
+      env:
+        JAVA_HOME: /usr/lib/sdk/openjdk17/jvm/openjdk-17
+        LIBRARY_PATH: /app/lib
+    sources:
+      - type: git
+        url: https://gitlab.com/android_translation_layer/art_standalone.git
+        commit: 66a5d9079b159e9c5819bfeef4a6fff6a5f32719
+      - type: patch
+        path: patches/0001-art-standalone-no-cleaner-free.patch
+
+  - name: android-translation-layer
+    buildsystem: meson
+    build-options:
+      append-path: /usr/lib/sdk/openjdk17/bin
+      env:
+        JAVA_HOME: /usr/lib/sdk/openjdk17/jvm/openjdk-17
+    sources:
+      - type: git
+        url: https://gitlab.com/android_translation_layer/android_translation_layer.git
+        commit: 923b6df1c56a9100a8c1bc4262ca963af37b69bf
+      - type: patch
+        path: patches/android_translation_layer_appid.patch
+      - type: patch
+        path: patches/0002-atl-env-gated-hw-decode.patch
+
+  - name: cacerts
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/share/java_home/lib/security
+      - install -D /usr/lib/sdk/openjdk17/jvm/openjdk-17/lib/security/cacerts /app/share/ssl/certs/java/cacerts
+
+  - name: libopensles-standalone
+    buildsystem: meson
+    build-options:
+      append-path: /usr/lib/sdk/openjdk17/bin
+      env:
+        JAVA_HOME: /usr/lib/sdk/openjdk17/jvm/openjdk-17
+    sources:
+      - type: git
+        url: https://gitlab.com/android_translation_layer/libopensles-standalone
+        commit: bdb857a4baadbc8c036db85a5da26c5269a751c5
+
+  - name: run-dex2oat
+    buildsystem: simple
+    build-options:
+      append-ld-library-path: /app/lib/art:/app/lib
+      arch:
+        x86_64:
+          env:
+            arch: x86_64
+        aarch64:
+          env:
+            arch: arm64
+    build-commands:
+      - mkdir -p /app/lib/java/dex/art/oat/$arch
+      - dex2oat -j1 --image=/app/lib/java/dex/art/oat/$arch/boot.art --dex-file=/app/lib/java/dex/art/core-oj-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/core-oj-hostdex.jar --dex-file=/app/lib/java/dex/art/apachehttp-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/apachehttp-hostdex.jar --dex-file=/app/lib/java/dex/art/apache-xml-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/apache-xml-hostdex.jar --dex-file=/app/lib/java/dex/art/bouncycastle-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/bouncycastle-hostdex.jar --dex-file=/app/lib/java/dex/art/core-junit-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/core-junit-hostdex.jar --dex-file=/app/lib/java/dex/art/core-libart-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/core-libart-hostdex.jar --dex-file=/app/lib/java/dex/art/hamcrest-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/hamcrest-hostdex.jar --dex-file=/app/lib/java/dex/art/junit-runner-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/junit-runner-hostdex.jar --dex-file=/app/lib/java/dex/art/okhttp-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/okhttp-hostdex.jar --dex-file=/app/lib/java/dex/art/wolfssljni-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/wolfssljni-hostdex.jar --oat-file=/app/lib/java/dex/art/oat/$arch/boot.oat
+        --base=0x60cf8000 --host
+      # mark it as executable, so that flatpak builder extracts debug info automatically
+      - chmod +x /app/lib/java/dex/art/oat/$arch/*.oat
+      - mkdir -p /app/lib/java/dex/android_translation_layer/oat/$arch
+      - dex2oat --dex-file=/app/lib/java/dex/android_translation_layer/api-impl.jar
+        --oat-file=/app/lib/java/dex/android_translation_layer/oat/$arch/api-impl.odex
+        --host
+      # mark it as executable, so that flatpak builder extracts debug info automatically
+      - chmod +x /app/lib/java/dex/android_translation_layer/oat/$arch/*.odex
+
+  - name: strip-jars
+    buildsystem: simple
+    build-commands:
+      - for f in /app/lib/java/dex/art/*.jar /app/lib/java/dex/android_translation_layer/*.jar;
+        do echo stripping $f; mv $f tmp.jar; zip -d tmp.jar "classes*.dex"; mv tmp.jar
+        $f; done

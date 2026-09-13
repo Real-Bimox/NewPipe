@@ -1,0 +1,34 @@
+From 1f0cfd8373936bac3f6f95e1c671db79b96bf5f3 Mon Sep 17 00:00:00 2001
+From: Bimox <Real-Bimox@users.noreply.github.com>
+Date: Sun, 13 Sep 2026 21:27:00 +1000
+Subject: [PATCH] MediaCodec: allow disabling hardware video decode via env
+
+Hosts whose VA driver cannot allocate surfaces (proprietary NVIDIA)
+fail every hardware decode attempt and produce no frames at all.
+Setting ATL_DISABLE_HW_DECODE skips VA-API/DRM_PRIME selection so
+decoding falls back to software and frames render through swscale.
+---
+ src/api-impl-jni/media/android_media_MediaCodec.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/api-impl-jni/media/android_media_MediaCodec.c b/src/api-impl-jni/media/android_media_MediaCodec.c
+index 5cca29df..11f3eb94 100644
+--- a/src/api-impl-jni/media/android_media_MediaCodec.c
++++ b/src/api-impl-jni/media/android_media_MediaCodec.c
+@@ -250,8 +250,12 @@ JNIEXPORT void JNICALL Java_android_media_MediaCodec_native_1configure_1video(JN
+ 	ctx->video.extradata = extradata;
+ 	ctx->video.extradata_size = extradata_size;
+ 
++	/* VA-API/DRM_PRIME decoding requires a working hardware stack; on hosts
++	   whose VA driver cannot allocate surfaces (e.g. proprietary NVIDIA), every
++	   picture fails to decode and no frame is ever produced. Allow forcing the
++	   software path, which reliably renders via swscale. */
+ 	int i = 0;
+-	while (1) {
++	while (!getenv("ATL_DISABLE_HW_DECODE")) {
+ 		const AVCodecHWConfig *config = avcodec_get_hw_config(codec_ctx->codec, i);
+ 		if (!config) {
+ 			fprintf(stderr, "Decoder %s doesn't support pixel format VAAPI or DRM_PRIME\n",
+-- 
+2.55.0
+
